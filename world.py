@@ -75,6 +75,68 @@ def world0(active=True, theta_explore=100., theta_exploit=1.):
         world.cars[1].objective = obj0
     return world
 
+def merge1(active=True, theta_explore=100., theta_exploit=1.):
+    theta_fence     = [1., -50., 10., 100., 10., -100.]
+    T = 10
+    dyn = dynamics.CarDynamics(0.1)
+    world = highway()
+    world.cars.append(car.SimpleOptimizerCar(dyn, [-0.13, 0., math.pi/2., 1.], color='red', T=T))
+    @feature.feature
+    def right_lane(t, x, u):
+        return 100.*np.exp((-0.5*(x[0]-0.13)**2)/.04)
+    world.cars[0].reward = world.features(theta_fence, world.cars[0], 'linear') + right_lane
+    return world
+
+def merge2(active=True, theta_explore=100., theta_exploit=1.):
+    theta_fence     = [1., -50., 10., 100., 10., -100.]
+    T = 10
+    dyn = dynamics.CarDynamics(0.1)
+    world = highway()
+    world.cars.append(car.SimpleOptimizerCar(dyn, [-0.13, 0., math.pi/2., 1.], color='red', T=T))
+    world.cars.append(car.SimpleOptimizerCar(dyn, [0.0, 0., math.pi/2., 1.], color='yellow', T=T))
+    @feature.feature
+    def right_lane(t, x, u):
+        return 100.*np.exp((-0.5*(x[0]-0.13)**2)/.04)
+    @feature.feature
+    def center_lane(t, x, u):
+        return 100.*np.exp((-0.5*(x[0])**2)/.04)
+    world.cars[0].reward = world.features(theta_fence, world.cars[0], 'linear') + right_lane
+    world.cars[1].reward = world.features(theta_fence, world.cars[1], 'linear') + center_lane
+    return world
+
+def merge3(active=True, theta_explore=100., theta_exploit=1.):
+    theta_fence     = [1., -50., 10., 100., 10., -100.]
+    T = 5
+    dyn = dynamics.CarDynamics(0.1)
+    world = highway()
+    world.cars.append(car.SimpleOptimizerCar(dyn, [.0, 0., math.pi/2., .8], color='red', T=T))
+    world.cars.append(car.BeliefOptimizerCar(dyn, [-0.13, 0.0, math.pi/2., .8], color='yellow', T=T))
+    world.cars[1].human = world.cars[0]
+    @feature.feature
+    def left_lane(t, x, u):
+        return 100.*np.exp((-0.5*(x[0]+0.13)**2)/.04)
+    @feature.feature
+    def right_lane(t, x, u):
+        return 100.*np.exp((-0.5*(x[0]-0.13)**2)/.04)
+    @feature.feature
+    def center_lane(t, x, u):
+        return 100.*np.exp((-0.5*(x[0])**2)/.04)
+    world.cars[0].reward = world.features(theta_fence, world.cars[0], 'linear') + right_lane
+    world.cars[1].add_model(lambda traj: world.features(theta_fence, world.cars[0], traj) + right_lane)
+    world.cars[1].add_model(lambda traj: world.features(theta_fence, world.cars[0], traj) + left_lane)
+    obj0 = world.cars[1].traj.total(world.features(theta_normal, world.cars[1], 'linear')+theta_exploit*center_lane)
+    if active:
+        world.cars[1].objective = lambda traj_h: theta_explore*world.cars[1].entropy(traj_h)+obj0
+    else:
+        world.cars[1].objective = obj0
+    return world
+
+def merge3_passive():
+    return merge3(active=False)
+def merge3_active():
+    return merge3()
+
+
 def make_world0(version, explore=100., exploit=10.):
     def active():
         return world0(True, explore, exploit)
