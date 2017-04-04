@@ -1,0 +1,60 @@
+#!/usr/bin/env python
+
+import sys
+import cPickle as pickle
+import time
+
+import theano as th
+import numpy as np
+
+import world
+import feature
+
+th.config.optimizer_verbose = True
+th.config.allow_gc = False
+th.config.optimizer = 'fast_compile'
+th.config.mode = 'FAST_COMPILE'
+
+epochs = 80
+
+@feature.feature
+def left_lane(t, x, u):
+    return -(x[0]+0.13)**2
+
+theta_distracted = [1., -50., 10., 100., 10., -20.]
+theta_attentive  = [1., -50., 10., 100., 10., -70.]
+
+if __name__ == '__main__':
+    theta_explore = util.scalar()
+
+    w = world.canonical(theta_attentive, theta_distracted, goal=left_lane, active=True, T=5, theta_explore=theta_explore)
+
+    i = 0
+    while i <= 10:
+        num_cars = len(w.cars)
+        controls = [[] for i in range(num_cars)]
+        states = [[] for i in range(num_cars)]
+        beliefs = [[] for i in range(num_cars)]
+
+        for t in range(epochs):
+            print("t = ", t)
+            for car in w.cars:
+                car.control(0,0)
+            for car, hist in zip(w.cars, controls):
+                hist.append(car.u)
+            for car in w.cars:
+                car.move()
+            for car, hist in zip(w.cars, states):
+                hist.append(car.x)
+            for car, hist in zip(w.cars, beliefs):
+                if hasattr(car, 'log_ps'):
+                    hist.append(np.asarray([np.exp(log_p.get_value()) for log_p in car.log_ps]))
+
+        with open('data/%s-%d-%d.pickle'%(name, theta_explore.get_value(), int(time.time())), 'w') as f:
+            pickle.dump((controls, states, beliefs), f)
+
+        for car in w.cars:
+            car.reset()
+
+        theta_explore.set_value(theta_explore.get_value() + 10)
+        i = i + 1

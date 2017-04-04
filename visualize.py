@@ -84,9 +84,12 @@ class Visualizer(object):
         if symbol == key.SPACE:
             self.paused = not self.paused
         if symbol == key.T:
+            print("t pressed")
             self.heatmap_show = not self.heatmap_show
             if self.heatmap_show:
                 self.heatmap_valid = False
+            print("heatmap_show", self.heatmap_show)
+            print("heatmap_valid", self.heatmap_valid)
         if symbol == key.J:
             joysticks = pyglet.input.get_joysticks()
             if joysticks and len(joysticks)>=1:
@@ -99,6 +102,8 @@ class Visualizer(object):
                 pickle.dump((self.history_u, self.history_x, self.history_belief), f)
             self.reset()
     def control_loop(self, _=None):
+        if not self.paused:
+            pyglet.image.get_buffer_manager().get_color_buffer().save('screenshots/screenshot-%.2f.png'%time.time())
         if self.paused:
             return
         if self.iters is not None and len(self.history_x[0])>=self.iters:
@@ -122,8 +127,9 @@ class Visualizer(object):
         if self.keys[key.RIGHT]:
             steer -= 1.5
         if self.joystick:
-            steer -= self.joystick.x*3.
-            gas -= self.joystick.y
+            print(self.joystick.y)
+            steer -= self.joystick.x*4.
+            gas -= (self.joystick.y - 1)/2
         self.heatmap_valid = False
         for car in self.cars:
             self.prev_x[car] = car.x
@@ -138,6 +144,7 @@ class Visualizer(object):
         for car in self.cars:
             car.move()
         for car, hist in zip(self.cars, self.history_x):
+            print(car.x)
             hist.append(car.x)
         for car, hist in zip(self.cars, self.history_belief):
             if hasattr(car, 'log_ps'):

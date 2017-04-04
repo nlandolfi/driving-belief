@@ -32,4 +32,6 @@ if __name__ == '__main__':
         vis.output = output
     vis.use_world(the_world)
     vis.main_car = the_world.cars[0]
+    vis.autoquit = True
+    vis.set_heat(the_world.cars[0].reward)
     vis.run(filename)

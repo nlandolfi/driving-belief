@@ -8,13 +8,18 @@ import theano as th
 import numpy as np
 
 import world
+import feature
 
 th.config.optimizer_verbose = True
 th.config.allow_gc = False
 th.config.optimizer = 'fast_compile'
 th.config.mode = 'FAST_COMPILE'
 
-epochs = 70
+epochs = 32
+
+@feature.feature
+def left_lane(t, x, u):
+    return -(x[0]+0.13)**2
 
 if __name__ == '__main__':
     name = sys.argv[1]

@@ -94,7 +94,7 @@ class NestedOptimizerCar(Car):
         self._rewards = vals
         self.optimizer = None
     def control(self, steer, gas):
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         if self.optimizer is None:
             reward_h, reward_r = self.rewards
             reward_h = self.traj_h.total(reward_h)
@@ -108,6 +108,9 @@ class BeliefOptimizerCar(Car):
         Car.__init__(self, *args, **vargs)
         self.bounds = [(-3., 3.), (-2., 2.)]
         self.dumb = False
+        self.collab = False
+        self.eta = 1.
+        self.t = 0 ## ADDED BY NICK FEB 6
     @property
     def human(self):
         return self._human
@@ -169,10 +172,14 @@ class BeliefOptimizerCar(Car):
                     obj_h = sum([traj_h.total(reward('traj')) for traj_h, reward in zip(self.traj_hs, self.rewards)])
                     var_h = sum([traj_h.u for traj_h in self.traj_hs], [])
                     obj_r = sum(tt.exp(log_p)*self.objective(traj_h) for traj_h, log_p in zip(self.traj_hs, self.log_ps))
+                    if self.collab:
+                        obj_r = obj_r + self.eta*sum([tt.exp(10*(1-tt.exp(log_p)))*traj_h.total(reward('traj')) for traj_h, reward, log_p in zip(self.traj_hs, self.rewards, self.log_ps)])
                     self.optimizer = utils.NestedMaximizer(obj_h, var_h, obj_r, self.traj.u)
                 else:
                     obj_r = self.objective
-                    self.optimizer = utils.Maximizer(self.objective, self.traj.u)
+                    if self.collab:
+                        obj_r = obj_r + self.eta*sum([tt.exp(10*(1-tt.exp(log_p)))*traj_h.total(reward('traj')) for traj_h, reward, log_p in zip(self.traj_hs, self.rewards, self.log_ps)])
+                    self.optimizer = utils.Maximizer(obj_r, self.traj.u)
         if self.t == self.T:
             self.update_belief()
             self.t = 0

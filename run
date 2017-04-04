@@ -20,4 +20,6 @@ if __name__ == '__main__':
     vis = visualize.Visualizer(0.5, name=name)
     vis.use_world(world)
     vis.main_car = world.cars[0]
+    if hasattr(world.cars[0], "reward"):
+        vis.set_heat(world.cars[0].reward)
     vis.run()

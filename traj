@@ -1,0 +1,276 @@
+#!/usr/bin/env python
+import sys
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+from matplotlib.image import BboxImage, AxesImage
+import world
+from matplotlib.path import Path
+from matplotlib.patches import PathPatch
+from scipy.ndimage import rotate, zoom
+
+GRASS = np.tile(plt.imread('images/grass.png'), (3,3,1))
+STEPS = 15
+T = 5
+
+CAR = {
+    color: zoom(plt.imread('images/car-{}.png'.format(color)), [0.3, 0.3, 1.])
+    for color in ['gray', 'orange', 'purple', 'red', 'white', 'yellow']
+}
+CAR_HUMAN = CAR['white']
+CAR_ROBOT = CAR['orange']
+CAR_SCALE = 0.15/max(CAR.values()[0].shape[:2])
+
+LANE_SCALE = 10.
+LANE_COLOR = (0.4, 0.4, 0.4) # 'gray'
+LANE_BCOLOR = 'white'
+
+def set_image(obj, data, scale=CAR_SCALE, x=[0., 0., 0., 0.]):
+    ox = x[0]
+    oy = x[1]
+    angle = x[2]
+    img = rotate(data, np.rad2deg(angle))
+    h, w = img.shape[0], img.shape[1]
+    obj.set_data(img)
+    obj.set_extent([ox-scale*w*0.5, ox+scale*w*0.5, oy-scale*h*0.5, oy+scale*h*0.5])
+
+def iu(hist):
+    return interp1d(np.asarray(range(len(hist))), np.asarray(hist), axis=0, kind='cubic')
+
+def ix(hist):
+    return interp1d(np.asarray(range(len(hist))), np.asarray(hist), axis=0, kind='cubic')
+
+## HARD CODED
+#results = list(np.load("data/xmerge_active-1482309192.pickle"))
+#results = list(np.load("data/xmerge_passive-1482286045.pickle"))
+#results = list(np.load("robotgoal-0-1486421216.pickle"))
+#results.append([iu(us) for us in results[0]])
+#results.append([ix(it) for it in results[1]])
+#w = world.canonical(world.theta_attentive, world.theta_distracted)
+w = world.xmerge_active()
+#w = world.rss_cross()
+## -----
+
+
+def center(a, cx=0., cy=0., wx=2., wy=2.):
+    a.set_xlim(cx-wx/2., cx+wx/2.)
+    a.set_ylim(cy-wy/2., cy+wy/2.)
+
+import matplotlib.font_manager as fm
+palaprop = fm.FontProperties(fname='/Users/Nick/Downloads/Palatino-Roman.ttf')
+
+def plot_fades(filename, title, out, length=None, H=0, R=1, offset=0, agents_at=None, plot_initial_pos=False, axes=False, pos_plots=False):
+    results = list(np.load(filename))
+    f, a = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(7, 14))
+    a.set_aspect("equal", "box-forced")
+    #a.set_aspect("equal")
+    a.set_ybound(0, 10)
+    g = BboxImage(a.get_window_extent, interpolation='bicubic', zorder=-1000)
+    a.add_artist(g)
+    g.set_data(GRASS)
+
+    for lane in w.lanes:
+        path = Path([
+            lane.p-LANE_SCALE*lane.m-lane.n*lane.w*0.5,
+            lane.p-LANE_SCALE*lane.m+lane.n*lane.w*0.5,
+            lane.q+LANE_SCALE*lane.m+lane.n*lane.w*0.5,
+            lane.q+LANE_SCALE*lane.m-lane.n*lane.w*0.5,
+            lane.p-LANE_SCALE*lane.m-lane.n*lane.w*0.5
+        ], [
+            Path.MOVETO,
+            Path.LINETO,
+            Path.LINETO,
+            Path.LINETO,
+            Path.CLOSEPOLY
+        ])
+        a.add_artist(PathPatch(path, facecolor=LANE_COLOR, lw=0.5, edgecolor=LANE_BCOLOR, zorder=-100))
+
+
+
+    if length is None:
+        times = float(len(results[1][H]))
+    else:
+        times = length
+
+    if offset != 0:
+        origin_shift = results[1][1][offset][1]
+    else:
+        origin_shift = 0
+
+    i = 1.
+
+    for x in results[1][H][offset:offset+int(times)]:
+        x = [x[0], x[1]-origin_shift, x[2], x[3]]
+        #print("HERE")
+        #print(x)
+        human = AxesImage(a, interpolation='bicubic', zorder=10000, alpha=i/times)
+        a.add_artist(human)
+        set_image(human, CAR_HUMAN, x=x)
+
+        i+=1
+
+
+    i = 1.
+
+    for x in results[1][R][offset:offset+int(times)]:
+        x = [x[0], x[1]-origin_shift, x[2], x[3]]
+        robot = AxesImage(a, interpolation='bicubic', zorder=100000, alpha=i/times)
+        a.add_artist(robot)
+        set_image(robot, CAR_ROBOT, x=x)
+
+        i+=1
+
+    hx0 = results[1][H][offset]
+    rx0 = results[1][R][offset]
+    if plot_initial_pos:
+        ## HACKKKK
+        hx0[1] = 0.5
+        rx0[1] = 0.3
+        a.plot(hx0[0],hx0[1]-origin_shift, 'or', color="white", markersize=25)
+        a.plot(rx0[0], rx0[1]-origin_shift, 'or', color="orange", markersize=25)
+
+    if pos_plots:
+        for item in a.get_xticklabels() + a.get_yticklabels():
+            item.set_fontsize(40)
+
+        plt.yticks([hx0[1]-origin_shift, rx0[1]-origin_shift])
+        #plt.xticks([-.13, 0, .13])
+        plt.xticks([])
+        plt.xticks([0])
+
+        plt.gca().xaxis.set_ticks_position('bottom')
+        plt.gca().yaxis.set_ticks_position('left')
+        plt.ylabel("$y$", fontproperties=palaprop)
+        plt.xlabel("$x$", fontproperties=palaprop)
+        a.xaxis.label.set_fontsize(40)
+        a.yaxis.label.set_fontsize(40)
+
+    #long highway
+    #center(a, 0, 2, 2, 4)
+    # highway
+    #center(a, 0, 1, 2, 2)
+    # highway tight
+    center(a, 0, .9, .5, 1.4)
+    #intersection
+    #center(a, 0, 0, 2, 2)
+    if not axes:
+        a.axis('off')
+    #plt.title(out)
+    plt.tight_layout()
+    print("Saving " + out)
+    f.savefig(out.replace(".", "-")+"-fade", dpi = 300, transparent=True)
+
+def plot_traj(filename, title, out, H=0, R=1, agents_at=None):
+    results = list(np.load(filename))
+    f, a = plt.subplots(1, 1, sharex=True, sharey=True, figsize=(7, 7))
+    a.set_aspect("equal", "box-forced")
+    g = BboxImage(a.bbox, interpolation='bicubic', zorder=-1000)
+    a.add_artist(g)
+    g.set_data(GRASS)
+
+    for lane in w.lanes:
+        path = Path([
+            lane.p-LANE_SCALE*lane.m-lane.n*lane.w*0.5,
+            lane.p-LANE_SCALE*lane.m+lane.n*lane.w*0.5,
+            lane.q+LANE_SCALE*lane.m+lane.n*lane.w*0.5,
+            lane.q+LANE_SCALE*lane.m-lane.n*lane.w*0.5,
+            lane.p-LANE_SCALE*lane.m-lane.n*lane.w*0.5
+        ], [
+            Path.MOVETO,
+            Path.LINETO,
+            Path.LINETO,
+            Path.LINETO,
+            Path.CLOSEPOLY
+        ])
+        a.add_artist(PathPatch(path, facecolor=LANE_COLOR, lw=0.5, edgecolor=LANE_BCOLOR, zorder=-100))
+
+    if agents_at is None:
+        agents_at = int(len(results[1][H])/2)
+
+    human = AxesImage(a, interpolation='bicubic', zorder=10000)
+    a.add_artist(human)
+    set_image(human, CAR_HUMAN, x=results[1][H][agents_at])
+    robot = AxesImage(a, interpolation='bicubic', zorder=1000)
+    a.add_artist(robot)
+    set_image(robot, CAR_ROBOT, x=results[1][R][agents_at])
+
+    STYLE = {
+        'marker': 'o',
+        'markeredgecolor': 'none',
+    }
+
+    xs = np.asarray(results[1][H])
+    h_future = a.plot(xs[:, 0], xs[:, 1], zorder=50, linestyle='-', color='white', linewidth=2., **STYLE)[0]
+    h_past = a.plot(xs[:, 0], xs[:, 1], zorder=40, linestyle='-', color='white', linewidth=2., **STYLE)[0]
+
+    xs = np.asarray(results[1][R])
+    r_future = a.plot(xs[:, 0], xs[:, 1], zorder=50, linestyle='-', color='orange', linewidth=2., **STYLE)[0]
+    r_past = a.plot(xs[:, 0], xs[:, 1], zorder=40, linestyle='-', color='orange', linewidth=2., **STYLE)[0]
+
+    #center(a, 0, 1, 2, 2)
+    #intersection
+    center(a, 0, 0, 2, 2)
+    a.axis('off')
+    plt.title(out)
+    f.savefig(out.replace(".", "-")+"-traj", dpi = 300)
+
+nudge_files = [
+    "nudging-True-0-0-1486866715.pickle",
+    "nudging-True-10-0-1486865988.pickle",
+    "nudging-True-20-0-1486864896.pickle",
+    "nudging-True-30-0-1486863780.pickle",
+    "nudging-True-40-0-1486861812.pickle",
+    "nudging-True-50-0-1486860323.pickle",
+    "nudging-True-60-0-1486858949.pickle",
+    "nudging-True-70-0-1486857797.pickle",
+    "nudging-True-80-0-1486855957.pickle",
+    "nudging-True-90-0-1486854918.pickle",
+    "nudging-True-100-0-1486852988.pickle",
+    "nudging-True-110-0-1486867674.pickle",
+    "nudging-True-120-0-1486869420.pickle",
+    "nudging-True-130-0-1486870512.pickle",
+    "nudging-True-140-0-1486871478.pickle",
+    "nudging-True-150-0-1486873152.pickle",
+    "nudging-True-160-0-1486875115.pickle",
+    "nudging-True-170-0-1486885691.pickle",
+    "nudging-True-180-0-1486886832.pickle",
+    "nudging-True-190-0-1486888263.pickle",
+    "nudging-True-200-0-1486889259.pickle",
+]
+
+nudge_files = ["nudge/" + f for f in nudge_files]
+
+"""
+for path in nudge_files:
+    filename = path.replace(".pickle", "")
+    name = filename.split('/')[-1]
+    #plot_fades(path, name, filename, length=20)
+    plot_traj(path, name, filename)
+"""
+equal_files = [
+"equal-nudging-True-0-0-1487058548.pickle",
+"equal-nudging-True-5-0-1487063411.pickle",
+"equal-nudging-True-10-0-1487064169.pickle",
+"equal-nudging-True-50-0-1487059426.pickle",
+"equal-nudging-True-100-0-1487060717.pickle",
+"equal-nudging-True-150-0-1487061637.pickle",
+"equal-nudging-True-200-0-1487062635.pickle",
+]
+
+equal_files = ["dum/" + f for f in equal_files]
+equal_results = [np.load(f) for f in equal_files]
+"""
+for path in equal_files:
+    filename = path.replace(".pickle", "")
+    name = filename.split('/')[-1]
+    plot_fades(path, name, filename, length=20, offset=10)
+    #plot_traj(path, name, filename)
+
+"""
+if __name__ == '__main__':
+    path = sys.argv[1]
+    filename = path.replace(".pickle", "")
+    name = filename.split('/')[-1]
+    plot_fades(path, name, filename, agents_at=4, offset=0, length=12, plot_initial_pos=True, axes=True, pos_plots=True)
+    #plot_traj(path, name, filename, agents_at=6)

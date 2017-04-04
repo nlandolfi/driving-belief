@@ -1,0 +1,108 @@
+#!/usr/bin/env python
+import sys
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+def make_graph(filename, title, out, action="action", car_of_interest=1):
+    results = np.load(filename)
+    bs = results[2][car_of_interest][:80]
+    fig = plt.figure()
+    #plt.plot([b[0] for b in bs], color="orange", label="Model 1 {0}".format(action))
+    #plt.plot([b[1] for b in bs], color="grey", label="Model 2 {0}".format(action))
+
+    plt.plot([b[0] for b in bs], color="red", label="Actual")
+    plt.plot([b[1] for b in bs], color="grey", label="Alternative")
+    plt.xlabel("time")
+    plt.ylabel("belief")
+    plt.title(title)
+    plt.ylim([0.,1.])
+    plt.legend()
+    fig.savefig(out+"-belief")
+    print(" THE CURRENT CONVENTION IS THAT THE FIRST BELIEF IS THE CORRECT ONE -- THIS CHANGED ON FEB 6")
+    """
+
+#make_graph("12_2_results/merge50_12_2_2active-1480725422.pickle", "active inference", "active_inference", "merge")
+#make_graph("12_2_results/merge50_12_2_2active_collab-1480724489.pickle", "active collaboration", "active_collab", "merge")
+#make_graph("12_2_results/merge50_12_2_2passive-1480718917.pickle", "passive inference", "passive_inference", "merge")
+#make_graph("12_2_results/merge50_12_2_2passive_collab-1480733275.pickle", "passive collaboration", "passive_collab", "merge")
+
+#make_graph("12_2_results/merge50_12_2_2active_subtle-1480730078.pickle", "active inference", "active_inference", "merge")
+#make_graph("12_2_results/merge50_12_2_2active_subtle_collab-1480730879.pickle", "active collaboration", "active_collab", "merge")
+#make_graph("12_2_results/merge50_12_2_2passive_subtle-1480719451.pickle", "passive inference", "passive_inference", "merge")
+#make_graph("12_2_results/merge50_12_2_2passive_subtle_collab-1480719497.pickle", "passive collaboration", "passive_collab", "merge")
+
+#make_graph("12_2_results/speed_12_2_2active-1480735430.pickle", "active inference", "active_inference", "speed")
+#make_graph("12_2_results/speed_12_2_2active_collab-1480736723.pickle", "active collaboration", "active_collab", "speed")
+#make_graph("12_2_results/speed_12_2_2passive-1480719913.pickle", "passive inference", "passive_inference", "speed")
+#make_graph("12_2_results/speed_12_2_2passive_collab-1480733441.pickle", "passive collaboration", "passive_collab", "speed")
+
+#make_graph("3_12_results/mergex_passive-1480827942.pickle", "Passive Inference", "passive_inference_exit", "exit")
+#make_graph("3_12_results/mergex_active-1480832218.pickle", "Active Inference", "active_inference_exit", "exit")
+#make_graph("3_12_results/mergex_active_collab-1480836495.pickle", "Active Collab", "active_collab_exit", "exit")
+#make_graph("3_12_results/mergex_passive_collab-1480832372.pickle", "Passive Collab", "passive_collab_exit", "exit")
+
+#make_graph("3_12_results/speed_12_2_2active-1480840195.pickle", "Active Inference", "active_inference_speed", "speed")
+#make_graph("3_12_results/speed_12_2_2active_collab-1480843747.pickle", "Active Collab", "active_collab_speed", "speed")
+#make_graph("3_12_results/speed_12_2_2passive-1480836623.pickle", "Passive Inference", "passive_inference_speed", "speed")
+#make_graph("3_12_results/speed_12_2_2passive_collab-1480840322.pickle", "Passive Collab", "passive_collab_speed", "speed")
+
+#make_graph("3_12_results/merge50_12_2_2active-1480831508.pickle", "Active Inference", "active_inference_merge50", "merge")
+#make_graph("3_12_results/merge50_12_2_2active_collab-1480834688.pickle", "Active Collab", "active_collab_merge50", "merge")
+#make_graph("3_12_results/merge50_12_2_2passive-1480827922.pickle", "Passive Inference", "passive_inference_merge50", "merge")
+#make_graph("3_12_results/merge50_12_2_2passive_collab-1480831656.pickle", "Passive Collab", "passive_collab_merge50", "merge")
+
+#make_graph("3_12_results/merge50_12_2_2active_subtle-1480838299.pickle", "Active Inference", "subtleactive_inference_subtle", "merge")
+#make_graph("3_12_results/merge50_12_2_2active_subtle_collab-1480842211.pickle", "Active Collab", "subtleactive_collab_subtle", "merge")
+#make_graph("3_12_results/merge50_12_2_2passive_subtle-1480834848.pickle", "Passive Inference", "subtlepassive_inference_subtle", "merge")
+#make_graph("3_12_results/merge50_12_2_2passive_subtle_collab-1480838458.pickle", "Passive Collab", "subtlepassive_collab_suble", "merge")
+
+make_graph("4_12_results/exit_active-1480889935.pickle", "Active Inference on Exit Goal", "exit_active", "exit")
+make_graph("4_12_results/exit_passive-1480886257.pickle", "Passive Inference on Exit Goal", "exit_passive", "exit")
+make_graph("4_12_results/exit_active_collab-1480894692.pickle", "Active Collaboration on Exit Goal", "exit_active_collab", "exit")
+make_graph("4_12_results/exit_passive_collab-1480890103.pickle", "Passive Collaboration on Exit Goal", "exit_passive_collab", "exit")
+
+make_graph("4_12_results/subtle_merge_active-1480889890.pickle", "Active Inference on Subtle Merge", "subtle_merge_active", "merge")
+make_graph("4_12_results/subtle_merge_active_collab-1480893103.pickle", "Active Collaboration on Subtle Merge", "subtle_merge_active_collab", "merge")
+make_graph("4_12_results/subtle_merge_passive-1480886296.pickle", "Passive Inference on Subtle Merge", "subtle_merge_passive", "merge")
+make_graph("4_12_results/subtle_merge_passive_collab-1480890042.pickle", "Passive Collaboration on Subtle Merge", "subtl_merge_passive_collab", "merge")
+
+make_graph("4_12_results/subtle_hold_active-1480897007.pickle", "Active Inference on Hold Lane", "hold_active", "merge")
+make_graph("4_12_results/subtle_hold_active_collab-1480901282.pickle", "Active Collaboration on Hold Lane", "hold_active_collab", "merge")
+make_graph("4_12_results/subtle_hold_passive-1480893235.pickle", "Passive Inference on Hold Lane", "hold_passive", "merge")
+make_graph("4_12_results/subtle_hold_passive_collab-1480897149.pickle", "Passive Collaboration on Hold Lane", "hold_passive_collab", "merge")
+
+#make_graph("4_12_results/stop_active-1480905676.pickle", "Active Inference for Haulting Exit", "stop_active", "exit")
+#make_graph("4_12_results/stop_passive-1480901503.pickle", "Passive Inference on Haulting Exit", "stop_passive", "exit")
+
+make_graph("data/stop_active-1480928982.pickle", "Active Inference on Slow Haulting Exit", "slow_stop_active", "exit")
+make_graph("data/stop_passive-1480989498.pickle", "Passive Inference on Slow Haulting Exit", "slow_stop_passive", "exit")
+make_graph("data/stop_passive-1480989498.pickle", "Passive Inference on Slow Haulting Exit", "slow_stop_passive", "exit")
+make_graph("data/stop_passive-1480990562.pickle", "Passive Inference on Slow Haulting Exit", "slow_stop_passive_longer", "exit")
+
+import sys
+
+if __name__ == '__main__':
+    f = sys.argv[1]
+    make_graph(f, f, f.split(".")[0], "actual")
+make_graph("data/mergetre_passive-1480992801.pickle", "Passive merge tre", "tre_passive", "exit", car_of_interest=2)
+make_graph("data/mergetre_active-1481030117.pickle", "active merge tre", "tre_active", "exit", car_of_interest=2)
+make_graph("data/mergequad_passive-1481089358.pickle", "active merge quad", "quad_passive", "exit", car_of_interest=3)
+make_graph("sunday/stop_passive-1481497465.pickle", "Merge To Exit Passive", "sunday/stop_passive", "exit")
+make_graph("sunday/stop_active-1481504635.pickle", "Merge To Exit Active", "sunday/stop_active", "exit")
+make_graph("sunday/distracted_passive-1481497389.pickle", "Distracted Passive", "sunday/distracted_passive", "distracted")
+make_graph("sunday/distracted_active-1481501973.pickle", "Distracted Active", "sunday/distracted_active", "distracted")
+make_graph("sunday/no_stop_passive-1481504849.pickle", "No Stop Passive", "sunday/no_stop_passive", "exit")
+make_graph("data/subtle_merge_passive-1481589938.pickle", "Subtle Merge Passive", "data/subtle_merge_passive-1481589938", "merge")
+make_graph("data/subtle_merge_active-1481609328.pickle", "Subtle Merge Active", "data/subtle_merge_active-1481609328", "merge")
+
+make_graph("data/xmerge_passive-1482191491.pickle", "Merge Passive", "data/xmerge_passive-1482191491", "merge")
+make_graph("data/xmerge_active-1482218170.pickle", "Merge Active", "data/xmerge_active-1482218170", "merge")
+    """
+
+
+if __name__ == '__main__':
+    path = sys.argv[1]
+    filename = path.replace(".pickle", "")
+    name = filename.split('/')[-1]
+    make_graph(path, name, filename, "merge")
